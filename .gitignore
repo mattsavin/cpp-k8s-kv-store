@@ -1,0 +1,43 @@
+.vscode/
+.idea/
+bin/
+out/
+build/
+build-*/
+cmake-build-*/
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Object files and archives
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+
+# Logs and runtime outputs
+*.log
+wal.log
+
+# Coverage
+coverage/
+*.gcda
+*.gcno
+*.gcov
+
+# Temporary/editor files
+*~
+*.swp
+*.swo
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Tags, build artifacts
+tags
