@@ -1,0 +1,4 @@
+build/
+wal.log
+.git/
+.vscode/
