@@ -111,6 +111,22 @@ public:
         }
     }
 
+    // Returns all current key-value pairs as a map
+    std::map<std::string, std::string> get_all_data()
+    {
+        std::lock_guard<std::mutex> lock(db_mutex);
+        std::map<std::string, std::string> all_data;
+
+        for (const auto &[key, loc] : index)
+        {
+            log_file.seekg(loc.offset, std::ios::beg);
+            std::vector<char> buffer(loc.size);
+            log_file.read(buffer.data(), loc.size);
+            all_data[key] = std::string(buffer.begin(), buffer.end());
+        }
+        return all_data;
+    }
+
     /*  Recovers the in-memory index from the log file.
         This is called during initialization to rebuild the index based on the existing log entries.
     */
