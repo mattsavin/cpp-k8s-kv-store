@@ -16,6 +16,6 @@ RUN mkdir -p /data
 
 COPY --from=builder /src/build/kv_store /app/kv_store
 
-EXPOSE 8081
+EXPOSE 8080
 
 CMD ["/app/kv_store"]
