@@ -4,7 +4,9 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <map>
 #include <mutex>
+#include <shared_mutex>
 
 struct RecordLocation
 {
@@ -18,7 +20,7 @@ private:
     std::string filepath;
     std::fstream log_file;
     std::unordered_map<std::string, RecordLocation> index;
-    std::mutex db_mutex;
+    std::shared_mutex db_mutex;
 
     void write_int(size_t val)
     {
@@ -60,9 +62,9 @@ public:
     */
     void put(const std::string &key, const std::string &value)
     {
-        std::lock_guard<std::mutex> lock(db_mutex); // Ensure thread safety (if we later add concurrency)
-        log_file.seekp(0, std::ios::end);           // Move to the end of the file for appending
-        size_t current_offset = log_file.tellp();   // Get the current offset before writing
+        std::unique_lock<std::shared_mutex> lock(db_mutex); // Ensure thread safety
+        log_file.seekp(0, std::ios::end);                   // Move to the end of the file for appending
+        size_t current_offset = log_file.tellp();           // Get the current offset before writing
 
         OpCode op_code = OpCode::PUT;                                             // Operation code for PUT
         log_file.write(reinterpret_cast<const char *>(&op_code), sizeof(OpCode)); // Write the operation code
@@ -79,8 +81,8 @@ public:
     /*  Retrieves the value associated with a given key. */
     std::string get(const std::string &key)
     {
-        std::lock_guard<std::mutex> lock(db_mutex); // Ensure thread safety (if we later add concurrency)
-        auto it = index.find(key);                  // Look up the key in the index
+        std::shared_lock<std::shared_mutex> lock(db_mutex); // Ensure thread safety
+        auto it = index.find(key);                          // Look up the key in the index
         if (it == index.end())
             return ""; // Key not found
 
@@ -92,7 +94,8 @@ public:
 
     void remove(const std::string &key)
     {
-        std::lock_guard<std::mutex> lock(db_mutex); // Ensure thread safety (if we later add concurrency)
+
+        std::unique_lock<std::shared_mutex> lock(db_mutex); // Ensure thread safety
 
         auto it = index.find(key); // Look up the key in the index
         if (it != index.end())
@@ -114,15 +117,16 @@ public:
     // Returns all current key-value pairs as a map
     std::map<std::string, std::string> get_all_data()
     {
-        std::lock_guard<std::mutex> lock(db_mutex);
-        std::map<std::string, std::string> all_data;
+        std::lock_guard<std::shared_mutex> lock(db_mutex); // Ensure thread safety
+
+        std::map<std::string, std::string> all_data; // Map to hold all key-value pairs
 
         for (const auto &[key, loc] : index)
         {
-            log_file.seekg(loc.offset, std::ios::beg);
-            std::vector<char> buffer(loc.size);
-            log_file.read(buffer.data(), loc.size);
-            all_data[key] = std::string(buffer.begin(), buffer.end());
+            log_file.seekg(loc.offset, std::ios::beg);                 // Move to the offset where the value is stored
+            std::vector<char> buffer(loc.size);                        // Create a buffer to hold the value
+            log_file.read(buffer.data(), loc.size);                    // Read the value data into the buffer
+            all_data[key] = std::string(buffer.begin(), buffer.end()); // Convert buffer to string and store in the map
         }
         return all_data;
     }
