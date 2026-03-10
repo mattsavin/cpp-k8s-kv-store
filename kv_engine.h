@@ -117,7 +117,7 @@ public:
     // Returns all current key-value pairs as a map
     std::map<std::string, std::string> get_all_data()
     {
-        std::lock_guard<std::shared_mutex> lock(db_mutex); // Ensure thread safety
+        std::shared_lock<std::shared_mutex> lock(db_mutex); // Ensure thread safety
 
         std::map<std::string, std::string> all_data; // Map to hold all key-value pairs
 
