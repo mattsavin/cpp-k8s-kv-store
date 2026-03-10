@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
       - name: kv-store
-        image: cpp-k8s-kv-store:v1
+        image: cpp-k8s-kv-store:v2
         imagePullPolicy: Never
         ports:
         - containerPort: 8080

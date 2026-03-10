@@ -1,6 +1,8 @@
 #include "httplib.h"
 #include "kv_engine.h"
+#include "json.hpp"
 #include <iostream>
+using json = nlohmann::json;
 
 int main()
 {
@@ -36,6 +38,17 @@ int main()
             } else {
                 res.set_content(value, "text/plain");
             }
+        } else {
+            res.status = 400;
+            res.set_content("Missing key", "text/plain");
+        } });
+
+    svr.Delete("/delete", [&](const httplib::Request &req, httplib::Response &res)
+               {
+        if (req.has_param("key")) {
+            std::string key = req.get_param_value("key");
+            kv_store.remove(key);
+            res.set_content("Deleted", "text/plain");
         } else {
             res.status = 400;
             res.set_content("Missing key", "text/plain");
