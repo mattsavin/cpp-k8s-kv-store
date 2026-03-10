@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -78,18 +79,28 @@ public:
         index[key] = {current_offset + sizeof(OpCode) + sizeof(size_t) * 2 + key.size(), value.size()};
     }
 
-    /*  Retrieves the value associated with a given key. */
-    std::string get(const std::string &key)
+    /*  Retrieves the value associated with a given key.
+        Returns std::nullopt when the key is not found; returns
+        an engaged optional containing an empty string when the
+        stored value is empty.
+    */
+    std::optional<std::string> get(const std::string &key)
     {
         std::shared_lock<std::shared_mutex> lock(db_mutex); // Ensure thread safety
         auto it = index.find(key);                          // Look up the key in the index
         if (it == index.end())
-            return ""; // Key not found
+            return std::nullopt; // Key not found
 
-        log_file.seekg(it->second.offset, std::ios::beg); // Move to the offset where the value is stored
-        std::vector<char> buffer(it->second.size);        // Create a buffer to hold the value
-        log_file.read(buffer.data(), it->second.size);    // Read the value data into the buffer
-        return std::string(buffer.begin(), buffer.end()); // Convert buffer to string and return
+        // Use a local ifstream for reads to avoid races on shared fstream state
+        std::ifstream in(filepath, std::ios::in | std::ios::binary);
+        if (!in.is_open())
+            return std::nullopt; // Treat inability to open as not-found / error
+
+        in.seekg(it->second.offset, std::ios::beg); // Move to the offset where the value is stored
+        std::vector<char> buffer(it->second.size);  // Create a buffer to hold the value
+        if (it->second.size > 0)
+            in.read(buffer.data(), it->second.size);                                  // Read the value data into the buffer
+        return std::optional<std::string>(std::string(buffer.begin(), buffer.end())); // Return value (may be empty)
     }
 
     void remove(const std::string &key)
@@ -121,12 +132,17 @@ public:
 
         std::map<std::string, std::string> all_data; // Map to hold all key-value pairs
 
+        std::ifstream in(filepath, std::ios::in | std::ios::binary);
+        if (!in.is_open())
+            return all_data; // return empty map if we can't open file
+
         for (const auto &[key, loc] : index)
         {
-            log_file.seekg(loc.offset, std::ios::beg);                 // Move to the offset where the value is stored
-            std::vector<char> buffer(loc.size);                        // Create a buffer to hold the value
-            log_file.read(buffer.data(), loc.size);                    // Read the value data into the buffer
-            all_data[key] = std::string(buffer.begin(), buffer.end()); // Convert buffer to string and store in the map
+            in.seekg(loc.offset, std::ios::beg); // Move to the offset where the value is stored
+            std::vector<char> buffer(loc.size);
+            if (loc.size > 0)
+                in.read(buffer.data(), loc.size);
+            all_data[key] = std::string(buffer.begin(), buffer.end());
         }
         return all_data;
     }

@@ -35,21 +35,21 @@ int main()
             {
             if (req.has_param("key")) {
             std::string key = req.get_param_value("key");
-            std::string value = kv_store.get(key);
-            
-            json response; 
-            
-            if (value.empty()) {
+            auto opt_value = kv_store.get(key);
+
+            json response;
+
+            if (!opt_value.has_value()) {
                 response["error"] = "Key not found";
                 response["key"] = key;
                 res.status = 404;
             } else {
                 response["key"] = key;
-                response["value"] = value;
+                response["value"] = *opt_value; // may be empty string but is present
                 response["status"] = "success";
                 res.status = 200;
             }
-            
+
             res.set_content(response.dump(), "application/json");
         } else {
             json err = {{"error", "Missing key parameter"}};
