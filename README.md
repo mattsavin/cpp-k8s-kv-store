@@ -30,7 +30,7 @@ cmake ..
 make -j$(nproc)
 ```
 
-When the build completes the binary will be placed in the build directory (e.g. `build/kv_store` or `build/kv_store` depending on the CMake target).
+When the build completes the binary will be placed in the build directory (e.g. `build/kv_store` on Linux/macOS).
 
 ## Run
 
