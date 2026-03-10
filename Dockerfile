@@ -8,7 +8,7 @@ COPY . .
 
 RUN mkdir build && cd build && cmake .. && cmake --build .
 
-FROM ubuntu:latest
+FROM ubuntu:24.04
 
 WORKDIR /app
 
